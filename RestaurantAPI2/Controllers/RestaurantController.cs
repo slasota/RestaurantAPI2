@@ -24,6 +24,16 @@ namespace RestaurantAPI2.Controllers
             _mapper = mapper;
         }
 
+        [HttpPost]
+        public ActionResult CreateRestaurant([FromBody] CreateRestaurantDto dto)
+        {
+            var restaurant = _mapper.Map<Restaurant>(dto);
+            _dbContext.Restaurants.Add(restaurant);
+            _dbContext.SaveChanges();
+
+            return Created($"/api/restaurant/{restaurant.Id}", null);
+        }
+
         [HttpGet]
         public ActionResult<IEnumerable<RestaurantDto>> GetAll()
         {
@@ -43,6 +53,8 @@ namespace RestaurantAPI2.Controllers
         {
             var restaurant = _dbContext
                 .Restaurants
+                .Include(r => r.Address)
+                .Include(r => r.Dishes)
                 .FirstOrDefault(r => r.Id == id);
 
             if (restaurant is null)
