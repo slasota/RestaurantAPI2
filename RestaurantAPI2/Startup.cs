@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RestaurantAPI2.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,11 +28,15 @@ namespace RestaurantAPI2
         {
 
             services.AddControllers();
+            services.AddDbContext<RestaurantDbContext>();
+            services.AddScoped<RestaurantSeeder>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, RestaurantSeeder seeder)
         {
+            seeder.Seed();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -41,7 +46,7 @@ namespace RestaurantAPI2
 
             app.UseRouting();
 
-            app.UseAuthorization();
+            /*app.UseAuthorization();*/
 
             app.UseEndpoints(endpoints =>
             {
