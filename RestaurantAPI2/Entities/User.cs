@@ -16,6 +16,6 @@ namespace RestaurantAPI2.Entities
         public string Nationality { get; set; }
         public string PasswordHash { get; set; }
         public int RoleId { get; set; }
-        public virtual Role role { get; set; }
+        public virtual Role Role { get; set; }
     }
 }
