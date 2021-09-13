@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using RestaurantAPI2.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace RestaurantAPI2.Models.Validators
     {
 
         private int[] allowedPageSizes = new[] { 5, 10, 15 };
+        private string[] allowedSortByColumnsName = new[] { nameof(Restaurant.Name), nameof(Restaurant.Description), nameof(Restaurant.Category)};
         public RestaurantQueryValidator()
         {
             RuleFor(r => r.PageNumber).GreaterThanOrEqualTo(1);
@@ -21,6 +23,8 @@ namespace RestaurantAPI2.Models.Validators
                     context.AddFailure("PageSize", $"PageSize must be in[{string.Join(",", allowedPageSizes)}]");
                 }
             });
+            RuleFor(r => r.SortBy).Must(value => string.IsNullOrEmpty(value) || allowedSortByColumnsName.Contains(value))
+                .WithMessage($"Sort by is optional, or must be in [{string.Join(",", allowedSortByColumnsName)}]");
         }
     }
 }

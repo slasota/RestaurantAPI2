@@ -9,6 +9,7 @@ using RestaurantAPI2.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -115,16 +116,32 @@ namespace RestaurantAPI2.Services
             .Where(r => query.searchPhrase == null || (r.Name.ToLower().Contains(query.searchPhrase.ToLower())
                                                 || r.Description.ToLower().Contains(query.searchPhrase.ToLower())));
 
+            if (!string.IsNullOrEmpty(query.SortBy))
+            {
+                var columnsSelectors = new Dictionary<string, Expression<Func<Restaurant, object>>>
+                {
+                    { nameof(Restaurant.Name), r => r.Name},
+                    { nameof(Restaurant.Description), r => r.Description},
+                    { nameof(Restaurant.Category), r => r.Category},
+                };
+
+                var selectedColumn = columnsSelectors[query.SortBy];
+
+                baseQuery = query.SortDirection == SortDirection.ASC ?
+                    baseQuery.OrderBy(selectedColumn)
+                    : baseQuery.OrderByDescending(selectedColumn);
+            }
+
             var restaurants = baseQuery
             .Skip(query.PageSize * (query.PageNumber - 1))
             .Take(query.PageSize)
             .ToList();
-            
+
             var restaurantsDtos = _mapper.Map<List<RestaurantDto>>(restaurants);
 
             var totalItemsCount = baseQuery.Count();
 
-            var result = new PagedResult<RestaurantDto>(restaurantsDtos,totalItemsCount, query.PageSize, query.PageNumber);
+            var result = new PagedResult<RestaurantDto>(restaurantsDtos, totalItemsCount, query.PageSize, query.PageNumber);
 
             return result;
         }
