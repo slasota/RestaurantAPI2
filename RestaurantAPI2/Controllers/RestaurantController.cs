@@ -54,9 +54,9 @@ namespace RestaurantAPI2.Controllers
         [HttpGet]
         [AllowAnonymous]
         
-        public ActionResult<IEnumerable<RestaurantDto>> GetAll()
+        public ActionResult<IEnumerable<RestaurantDto>> GetAll([FromQuery]RestaurantQuery query )
         {
-            var restaurantsDtos = _restaurantService.GetAll();
+            var restaurantsDtos = _restaurantService.GetAll(query);
 
             return Ok(restaurantsDtos);
         }
@@ -70,5 +70,12 @@ namespace RestaurantAPI2.Controllers
             return Ok(restaurant);
         }
         
+        [HttpPost("generate/{count}")]
+        public ActionResult CreateRestaurantWithRandomData([FromRoute]int count)
+        {
+            _restaurantService.GenerateRestaurantsWithRandomData(count);
+
+            return Created("", null);
+        }
     }
 }

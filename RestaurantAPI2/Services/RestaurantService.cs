@@ -18,10 +18,11 @@ namespace RestaurantAPI2.Services
     public interface IRestaurantService
     {
         int Create(CreateRestaurantDto dto);
-        IEnumerable<RestaurantDto> GetAll();
+        PagedResult<RestaurantDto> GetAll(RestaurantQuery query);
         RestaurantDto GetById(int id);
         void Delete(int id);
         void Update(int id, UpdateRestaurantDto dto);
+        void GenerateRestaurantsWithRandomData(int count);
     }
 
     public class RestaurantService : IRestaurantService
@@ -43,7 +44,7 @@ namespace RestaurantAPI2.Services
 
         public void Update(int id, UpdateRestaurantDto dto)
         {
-            
+
 
             var restaurant = _dbContext
             .Restaurants
@@ -54,7 +55,7 @@ namespace RestaurantAPI2.Services
 
             var authorizationResult = _authorizationService.AuthorizeAsync(_userContextService.User, restaurant, new ResourceOperationRequirement(ResourceOperation.Update)).Result;
 
-            if(!authorizationResult.Succeeded)
+            if (!authorizationResult.Succeeded)
             {
                 throw new ForbidException();
             }
@@ -104,17 +105,28 @@ namespace RestaurantAPI2.Services
             return result;
         }
 
-        public IEnumerable<RestaurantDto> GetAll()
+        public PagedResult<RestaurantDto> GetAll(RestaurantQuery query)
         {
-            var restaurants = _dbContext
+
+            var baseQuery = _dbContext
             .Restaurants
             .Include(r => r.Address)
             .Include(r => r.Dishes)
-            .ToList();
+            .Where(r => query.searchPhrase == null || (r.Name.ToLower().Contains(query.searchPhrase.ToLower())
+                                                || r.Description.ToLower().Contains(query.searchPhrase.ToLower())));
 
+            var restaurants = baseQuery
+            .Skip(query.PageSize * (query.PageNumber - 1))
+            .Take(query.PageSize)
+            .ToList();
+            
             var restaurantsDtos = _mapper.Map<List<RestaurantDto>>(restaurants);
 
-            return restaurantsDtos;
+            var totalItemsCount = baseQuery.Count();
+
+            var result = new PagedResult<RestaurantDto>(restaurantsDtos,totalItemsCount, query.PageSize, query.PageNumber);
+
+            return result;
         }
 
         public int Create(CreateRestaurantDto dto)
@@ -126,5 +138,48 @@ namespace RestaurantAPI2.Services
             return restaurant.Id;
         }
 
+        public void GenerateRestaurantsWithRandomData(int count)
+        {
+            var restaurants = new List<Restaurant>();
+
+            for (int i = 0; i < count; i++)
+            {
+                var newRestaurant = new Restaurant()
+                {
+                    Name = String.Join(" ", Faker.Lorem.Words(2)),
+                    Category = Faker.Lorem.GetFirstWord(),
+                    ContactEmail = Faker.Internet.Email(),
+                    ContactNumber = Faker.Phone.Number(),
+                    HasDelivery = true,
+                    Description = Faker.Lorem.Sentence(15),
+                    Address = new Address()
+                    {
+                        City = Faker.Address.City(),
+                        Street = Faker.Address.StreetAddress(),
+                        PostalCode = Faker.Address.UkPostCode()
+                    },
+                    CreatedById = _userContextService.GetUserId,
+                    Dishes = new List<Dish>()
+                    {
+                        new Dish()
+                        {
+                            Name = Faker.Name.FullName(),
+                            Description = Faker.Lorem.Sentence(),
+                            Price = Faker.RandomNumber.Next(100)
+                        },
+                        new Dish()
+                        {
+                            Name = Faker.Name.FullName(),
+                            Description = Faker.Lorem.Sentence(),
+                            Price = Faker.RandomNumber.Next(100)
+                        },
+                    }
+                };
+                restaurants.Add(newRestaurant);
+            }
+
+            _dbContext.Restaurants.AddRange(restaurants);
+            _dbContext.SaveChanges();
+        }
     }
 }
