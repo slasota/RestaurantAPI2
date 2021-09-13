@@ -1,5 +1,6 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using RestaurantAPI2.Authorization;
 using RestaurantAPI2.Entities;
 using RestaurantAPI2.Middleware;
 using RestaurantAPI2.Models;
@@ -58,6 +60,16 @@ namespace RestaurantAPI2
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authenticationSettings.JwtKey))
                 };
             });
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("HasNationality", builder => builder.RequireClaim("Nationality", "German", "Polish"));
+                options.AddPolicy("Atleast20", builder => builder.AddRequirements(new MinimumAgeRequirement(20)));
+                options.AddPolicy("CratedAtleast2Restaurants", builder => builder.AddRequirements(new MinimumCreatedRestaurantsRequirement(2)));
+            });
+
+            services.AddScoped<IAuthorizationHandler, MinimumAgeRequirementHandler>();
+            services.AddScoped<IAuthorizationHandler, MinimumCreatedRestaurantsRequirementHandler>();
+            services.AddScoped<IAuthorizationHandler, ResourceOperationRequirementHandler>();
 
             services.AddControllers().AddFluentValidation();
             services.AddDbContext<RestaurantDbContext>();
@@ -70,6 +82,8 @@ namespace RestaurantAPI2
             services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
             services.AddScoped<IValidator<RegisterUserDto>, RegisterUserDtoValidator>();
             services.AddScoped<RequestTimeMiddleware>();
+            services.AddScoped<IUserContextService, UserContextService>();
+            services.AddHttpContextAccessor();
             services.AddSwaggerGen();
         }
 
@@ -98,7 +112,7 @@ namespace RestaurantAPI2
             
             app.UseRouting();
 
-            /*app.UseAuthorization();*/
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
