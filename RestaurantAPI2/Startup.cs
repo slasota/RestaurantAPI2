@@ -86,11 +86,20 @@ namespace RestaurantAPI2
             services.AddScoped<IUserContextService, UserContextService>();
             services.AddHttpContextAccessor();
             services.AddSwaggerGen();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("FrontEndClient", builder =>
+                    builder.AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .WithOrigins(Configuration["AllowedOrigins"])
+                    );
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, RestaurantSeeder seeder)
         {
+            app.UseCors("FrontEndClient");
             seeder.Seed();
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en");
 
@@ -110,7 +119,7 @@ namespace RestaurantAPI2
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Restaurant API");
             }
             );
-            
+
             app.UseRouting();
 
             app.UseAuthorization();
